@@ -76,7 +76,7 @@ A React skeleton site that auto-deploys to `marychen68.github.io` on every push.
     The standard team workflow; your commit history is part of your portfolio
   - ✅ GitHub 上至少有 1 个自己开并合并的 PR / At least one PR opened and merged
 
-- [ ] **1.4 创建 React 项目 / Create the React Project**
+- [x] **1.4 创建 React 项目 / Create the React Project**
   - 做 / Do：在 `web/` 里用 `npm create vite@latest` 建 React + TS 项目，加上 Prettier（Vite 模板自带 ESLint）
     Scaffold React + TS in `web/` with `npm create vite@latest`; add Prettier (ESLint comes with the template)
   - 学 / Learn：`package.json`、`node_modules`、`src/` 和 `public/` 的区别，`dev` 和 `build` 的区别
@@ -90,7 +90,7 @@ A React skeleton site that auto-deploys to `marychen68.github.io` on every push.
     On push to `main`: lint → build → deploy to GitHub Pages
   - ✅ 改一行字 → push → 几分钟后网站自动更新 / Change a line → push → site updates in minutes
 
-- [ ] **1.6 README**
+- [x] **1.6 README**
   - 做 / Do：项目简介、技术栈、本地运行步骤 / Intro, tech stack, how to run locally
   - ✅ 别人照着能在自己电脑上跑起来 / Someone else can run it from the README alone
 
