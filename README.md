@@ -4,7 +4,7 @@ My personal website: [marychen68.github.io](https://marychen68.github.io)
 
 ## Tech stack
 
-- **Frontend:** Vite, React, TypeScript
+- **Frontend:** Vite, React, TypeScript, React Router, Tailwind CSS
 - **Deploy:** GitHub Actions → GitHub Pages
 
 ## Run locally
@@ -36,7 +36,10 @@ Run inside `web/`:
 .github/workflows/  # CI/CD: lint, build, deploy on every push to main
 web/                # React frontend
   public/           # Static files served as-is (favicon, images)
-  src/              # App source code
+  src/
+    content.ts      # All site text: edit this to change content
+    components/     # Reusable UI pieces (navbar, cards, ...)
+    pages/          # One file per page
 ```
 
 ## Deployment
