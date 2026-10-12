@@ -1,12 +1,41 @@
-body {
-  margin: 0;
-  background: #f5f0e6;
-  color: #2b2622;
-  font-family: system-ui, sans-serif;
+@import 'tailwindcss';
+
+/* Dark mode is on when <html> has the "dark" class */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Design tokens: every color and font on the site comes from here.
+ * Change a value once and the whole site updates.
+ */
+:root {
+  --bg: #f5f0e6;
+  --surface: #fffcf6;
+  --text: #2b2622;
+  --muted: #6f665d;
+  --border: #e3d9c8;
+  --accent: #d9603f;
 }
 
-.page {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 96px 24px;
+.dark {
+  --bg: #1a1714;
+  --surface: #24201c;
+  --text: #f1ebe1;
+  --muted: #a89e92;
+  --border: #3a332c;
+  --accent: #f08a68;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --font-sans: system-ui, sans-serif;
+  --font-display: Georgia, 'Times New Roman', serif;
+}
+
+body {
+  @apply bg-bg font-sans text-text antialiased;
 }
