@@ -11,6 +11,11 @@ permissions:
   pages: write
   id-token: write
 
+# Run one deploy at a time; a new push waits for the current deploy to finish
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
