@@ -13,7 +13,7 @@ permissions:
 
 # Run one deploy at a time; a new push waits for the current deploy to finish
 concurrency:
-  group: pages
+  group: deploy-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
