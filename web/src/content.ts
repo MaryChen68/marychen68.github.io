@@ -44,7 +44,7 @@ export const profile = {
 export const about = {
   paragraphs: [
     "I'm a developer and HCI researcher at Calvin University, where I build and study AI tools for writing and reflection. Next, I want to go deeper into AI engineering and build systems where it's always clear what the AI did and what the person did.",
-    'I study computer science with a statistics minor, and my coursework includes information security, LLMs and transformers, web development, and SQL databases. Outside of code, I cook at home a lot, and I speak both English and Mandarin.',
+    'I study computer science with a statistics minor, and my coursework includes information security, LLMs and transformers, web development, and SQL databases. I'm also working toward a cybersecurity certificate, because I see security as caring for people's privacy and their ability to trust the systems they use. Outside of code, I cook at home a lot, and I speak both English and Mandarin.',
   ],
   experience: [
     {
