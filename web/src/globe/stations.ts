@@ -1,8 +1,8 @@
-// Island stations: one per section of the site.
+// Globe stations: one per section of the site.
 // A station only appears if its section has real content in content.ts.
 import type { ComponentType } from 'react'
 import { about, profile, projects } from '../content'
-import type { StationKind } from './models'
+import type { Place } from './scene'
 import {
   AboutPanel,
   ContactPanel,
@@ -15,7 +15,8 @@ export type Station = {
   name: string
   eyebrow: string
   intro: string
-  kind: StationKind
+  // Where the marker sits on the globe (decorative, not a real location)
+  place: Place
   Panel: ComponentType
 }
 
@@ -23,36 +24,36 @@ const all: (Station & { hasContent: boolean })[] = [
   {
     id: 'projects',
     name: 'Projects',
-    eyebrow: 'The studio',
+    eyebrow: 'Selected work',
     intro: 'Things I have designed and built.',
-    kind: 'studio',
+    place: { lat: 38, lon: -98 },
     Panel: ProjectsPanel,
     hasContent: projects.length > 0,
   },
   {
     id: 'experience',
     name: 'Experience',
-    eyebrow: 'The pavilion',
+    eyebrow: 'Career',
     intro: 'Where I have worked and what I did there.',
-    kind: 'pavilion',
+    place: { lat: 48, lon: 12 },
     Panel: ExperiencePanel,
     hasContent: about.experience.length > 0,
   },
   {
     id: 'about',
     name: 'About',
-    eyebrow: 'The reading room',
+    eyebrow: 'Background',
     intro: 'A little more about me.',
-    kind: 'library',
+    place: { lat: 32, lon: 108 },
     Panel: AboutPanel,
     hasContent: about.paragraphs.length > 0,
   },
   {
     id: 'contact',
     name: 'Contact',
-    eyebrow: 'The lighthouse',
+    eyebrow: 'Get in touch',
     intro: 'The best ways to reach me.',
-    kind: 'beacon',
+    place: { lat: -12, lon: -52 },
     Panel: ContactPanel,
     hasContent: profile.socials.length > 0,
   },

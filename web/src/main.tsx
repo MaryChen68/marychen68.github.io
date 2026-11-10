@@ -2,7 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router'
 import Layout from './components/Layout'
-import IslandHome from './island/IslandHome'
+import GlobeHome from './globe/GlobeHome'
 import './index.css'
 import About from './pages/About'
 import NotFound from './pages/NotFound'
@@ -11,8 +11,8 @@ import Projects from './pages/Projects'
 
 // Every page and its URL
 const router = createBrowserRouter([
-  // The home page is a full-screen 3D island, so it skips the shared layout
-  { path: '/', element: <IslandHome /> },
+  // The home page is a full-screen 3D globe, so it skips the shared layout
+  { path: '/', element: <GlobeHome /> },
   {
     element: <Layout />,
     children: [
