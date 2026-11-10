@@ -1,11 +1,10 @@
-// The 3D globe: dotted land and ocean, section markers, and a traveler.
+// The 3D globe: solid land on a pale ocean, section markers, and a traveler.
 // The globe keeps north up and only turns when dragged or when a route needs it.
 import * as T from 'three'
 import { createTraveler } from './character'
 import { isLand } from './landmask'
 
 const R = 5 // globe radius
-const DOT_COUNT = 60000
 const TRAVELER_SCALE = 0.55
 const WALK_SPEED = 0.35 // radians per second along the surface
 const ARRIVE_ANGLE = 0.07 // how close counts as "arrived", in radians
@@ -14,7 +13,8 @@ const VIEW_LIFT = 0.85
 const MAX_TILT = 1.1
 
 const INK = '#2e332f'
-const OCEAN_DOT = '#d3cec3'
+const LAND = '#9aa392'
+const OCEAN = '#e3e6e2'
 const ACCENT = '#b4532a'
 const UP = new T.Vector3(0, 1, 0)
 const RIGHT = new T.Vector3(1, 0, 0)
@@ -82,41 +82,45 @@ function viewOf(p: T.Vector3) {
   return { yaw, tilt: T.MathUtils.clamp(tilt, -MAX_TILT, MAX_TILT) }
 }
 
-// Points spread evenly over a sphere (Fibonacci lattice), split into land and ocean
-function lattice(count: number) {
-  const land: T.Vector3[] = []
-  const ocean: T.Vector3[] = []
-  const golden = Math.PI * (3 - Math.sqrt(5))
-  for (let i = 0; i < count; i++) {
-    const y = 1 - (i / (count - 1)) * 2
-    const r = Math.sqrt(1 - y * y)
-    const v = new T.Vector3(
-      Math.cos(golden * i) * r,
-      y,
-      Math.sin(golden * i) * r,
-    )
-    const lat = T.MathUtils.radToDeg(Math.asin(v.y))
-    const lon = T.MathUtils.radToDeg(Math.atan2(v.z, -v.x)) - 180
-    if (isLand(lat, lon < -180 ? lon + 360 : lon)) land.push(v)
-    else if (i % 3 === 0) ocean.push(v)
-  }
-  return { land, ocean }
-}
+// Paint the land map onto a canvas, with smoothed coastlines, to wrap around the sphere
+function landTexture() {
+  const small = document.createElement('canvas')
+  small.width = 720
+  small.height = 360
+  const sctx = small.getContext('2d')!
+  const img = sctx.createImageData(720, 360)
+  for (let y = 0; y < 360; y++)
+    for (let x = 0; x < 720; x++)
+      if (isLand(90 - (y + 0.5) / 2, (x + 0.5) / 2 - 180))
+        img.data[(y * 720 + x) * 4 + 3] = 255
+  sctx.putImageData(img, 0, 0)
 
-function dotLayer(points: T.Vector3[], size: number, color: string) {
-  const mesh = new T.InstancedMesh(
-    new T.CircleGeometry(size, 6),
-    new T.MeshBasicMaterial({ color }),
-    points.length,
-  )
-  const helper = new T.Object3D()
-  points.forEach((v, i) => {
-    helper.position.copy(v).multiplyScalar(R)
-    helper.lookAt(v.clone().multiplyScalar(R * 2))
-    helper.updateMatrix()
-    mesh.setMatrixAt(i, helper.matrix)
-  })
-  return mesh
+  // Scale up with a slight blur, then cut at 50% for smooth, crisp edges
+  const big = document.createElement('canvas')
+  big.width = 2048
+  big.height = 1024
+  const ctx = big.getContext('2d')!
+  ctx.filter = 'blur(2px)'
+  ctx.drawImage(small, 0, 0, big.width, big.height)
+  const out = ctx.getImageData(0, 0, big.width, big.height)
+  // Canvas pixels are sRGB bytes, so read the hex colors directly
+  const rgb = (hex: string) =>
+    [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
+  const land = rgb(LAND)
+  const ocean = rgb(OCEAN)
+  for (let i = 0; i < out.data.length; i += 4) {
+    const c = out.data[i + 3] > 127 ? land : ocean
+    out.data[i] = c[0]
+    out.data[i + 1] = c[1]
+    out.data[i + 2] = c[2]
+    out.data[i + 3] = 255
+  }
+  ctx.putImageData(out, 0, 0)
+
+  const texture = new T.CanvasTexture(big)
+  texture.colorSpace = T.SRGBColorSpace
+  texture.anisotropy = 4
+  return texture
 }
 
 export function createGlobe(container: HTMLElement, options: Options) {
@@ -137,8 +141,8 @@ export function createGlobe(container: HTMLElement, options: Options) {
   const camera = new T.PerspectiveCamera(35, innerWidth / innerHeight, 0.1, 200)
   let distance = innerWidth < 700 ? 30 : 20
 
-  scene.add(new T.HemisphereLight('#ffffff', '#b9b3a6', 1.6))
-  const key = new T.DirectionalLight('#fff4e6', 1.8)
+  scene.add(new T.HemisphereLight('#ffffff', '#ddd8cc', 2.8))
+  const key = new T.DirectionalLight('#fff4e6', 1.3)
   key.position.set(6, 8, 12)
   scene.add(key)
 
@@ -147,8 +151,8 @@ export function createGlobe(container: HTMLElement, options: Options) {
   scene.add(planet)
 
   const globe = new T.Mesh(
-    new T.SphereGeometry(R * 0.995, 64, 48),
-    new T.MeshBasicMaterial({ color: '#ece8e0' }),
+    new T.SphereGeometry(R, 96, 64),
+    new T.MeshStandardMaterial({ map: landTexture(), roughness: 1 }),
   )
   planet.add(globe)
   scene.add(
@@ -157,9 +161,6 @@ export function createGlobe(container: HTMLElement, options: Options) {
       new T.MeshBasicMaterial({ color: '#d8d3c8', side: T.BackSide }),
     ),
   )
-
-  const { land, ocean } = lattice(DOT_COUNT)
-  planet.add(dotLayer(land, 0.03, INK), dotLayer(ocean, 0.022, OCEAN_DOT))
 
   // --- Markers: a slim pin with a pulsing ring at each place ---
   const placeVectors = options.places.map(toVector)
