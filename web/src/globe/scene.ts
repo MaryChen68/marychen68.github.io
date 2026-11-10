@@ -1,4 +1,4 @@
-// The 3D globe at night: solid land on a deep ocean, section markers, and a traveler.
+// The 3D globe: a soft map of land and sea, clouds, section markers, and a traveler.
 // The globe keeps north up and only turns when dragged or when a route needs it.
 import * as T from 'three'
 import { createTraveler } from './character'
@@ -12,10 +12,13 @@ const ARRIVE_ANGLE = 0.07 // how close counts as "arrived", in radians
 const VIEW_LIFT = 0.85
 const MAX_TILT = 1.1
 
-const INK = '#c9d1d8'
-const LAND = '#6f8578'
-const OCEAN = '#22323f'
-const ACCENT = '#e3a857'
+const INK = '#1c2733'
+const LAND = '#94a89f'
+const COAST = '#7b9087'
+const OCEAN = '#d6e4ec'
+const SHALLOW = '#e9f1f5'
+const ACCENT = '#2f4b63'
+const ATMOSPHERE = '#b9d0de'
 const UP = new T.Vector3(0, 1, 0)
 const RIGHT = new T.Vector3(1, 0, 0)
 const FRONT = new T.Vector3(0, 0, 1)
@@ -24,6 +27,7 @@ export type Place = { lat: number; lon: number }
 
 export type FrameInfo = {
   labels: { x: number; y: number; visible: boolean }[]
+  position: Place
   near: number
   hover: number
 }
@@ -36,6 +40,13 @@ type Options = {
   onLeave?: () => void
   onMove?: () => void
   onFrame?: (info: FrameInfo) => void
+}
+
+// Unit vector → latitude/longitude in degrees (inverse of toVector)
+function toPlace(v: T.Vector3): Place {
+  const lat = T.MathUtils.radToDeg(Math.asin(T.MathUtils.clamp(v.y, -1, 1)))
+  const lon = T.MathUtils.radToDeg(Math.atan2(v.z, -v.x)) - 180
+  return { lat, lon: lon < -180 ? lon + 360 : lon }
 }
 
 // Latitude/longitude in degrees → unit vector
@@ -100,22 +111,54 @@ function landTexture() {
   big.width = 2048
   big.height = 1024
   const ctx = big.getContext('2d')!
-  ctx.filter = 'blur(2px)'
-  ctx.drawImage(small, 0, 0, big.width, big.height)
-  const out = ctx.getImageData(0, 0, big.width, big.height)
+  // Two blurred copies of the land: a tight one for the coastline, a wide one for shallow water
+  const blurred = (radius: number) => {
+    ctx.clearRect(0, 0, big.width, big.height)
+    ctx.filter = `blur(${radius}px)`
+    ctx.drawImage(small, 0, 0, big.width, big.height)
+    return ctx.getImageData(0, 0, big.width, big.height).data
+  }
+  const edge = blurred(2)
+  const halo = blurred(16)
+  ctx.filter = 'none'
+  const out = ctx.createImageData(big.width, big.height)
   // Canvas pixels are sRGB bytes, so read the hex colors directly
   const rgb = (hex: string) =>
     [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
-  const land = rgb(LAND)
-  const ocean = rgb(OCEAN)
+  const [land, coast, ocean, shallow] = [LAND, COAST, OCEAN, SHALLOW].map(rgb)
   for (let i = 0; i < out.data.length; i += 4) {
-    const c = out.data[i + 3] > 127 ? land : ocean
+    const a = edge[i + 3]
+    let c: number[]
+    if (a > 150) c = land
+    else if (a > 105) c = coast
+    else {
+      const t = Math.min(1, halo[i + 3] / 110)
+      c = ocean.map((o, k) => o + (shallow[k] - o) * t)
+    }
     out.data[i] = c[0]
     out.data[i + 1] = c[1]
     out.data[i + 2] = c[2]
     out.data[i + 3] = 255
   }
   ctx.putImageData(out, 0, 0)
+
+  // Latitude and longitude lines every 15 degrees
+  ctx.strokeStyle = 'rgba(28, 39, 51, 0.07)'
+  ctx.lineWidth = 1.5
+  for (let deg = 15; deg < 360; deg += 15) {
+    const x = (deg / 360) * big.width
+    ctx.beginPath()
+    ctx.moveTo(x, 0)
+    ctx.lineTo(x, big.height)
+    ctx.stroke()
+  }
+  for (let deg = 15; deg < 180; deg += 15) {
+    const y = (deg / 180) * big.height
+    ctx.beginPath()
+    ctx.moveTo(0, y)
+    ctx.lineTo(big.width, y)
+    ctx.stroke()
+  }
 
   const texture = new T.CanvasTexture(big)
   texture.colorSpace = T.SRGBColorSpace
@@ -141,8 +184,8 @@ export function createGlobe(container: HTMLElement, options: Options) {
   const camera = new T.PerspectiveCamera(35, innerWidth / innerHeight, 0.1, 200)
   let distance = innerWidth < 700 ? 30 : 20
 
-  scene.add(new T.HemisphereLight('#dfe8f0', '#1a222b', 2.2))
-  const key = new T.DirectionalLight('#ffe9c7', 1.6)
+  scene.add(new T.HemisphereLight('#ffffff', '#cfdbe3', 2.6))
+  const key = new T.DirectionalLight('#ffffff', 1.2)
   key.position.set(6, 8, 12)
   scene.add(key)
 
@@ -155,37 +198,57 @@ export function createGlobe(container: HTMLElement, options: Options) {
     new T.MeshStandardMaterial({ map: landTexture(), roughness: 1 }),
   )
   planet.add(globe)
+  // Atmosphere: a slightly larger sphere that glows toward its edges
   scene.add(
     new T.Mesh(
-      new T.SphereGeometry(R * 1.02, 64, 48),
-      new T.MeshBasicMaterial({ color: '#2c3a46', side: T.BackSide }),
-    ),
-  )
-
-  // A few faint stars far behind the globe
-  const starPositions: number[] = []
-  for (let i = 0; i < 500; i++) {
-    const v = new T.Vector3()
-      .randomDirection()
-      .multiplyScalar(60 + Math.random() * 40)
-    starPositions.push(v.x, v.y, v.z)
-  }
-  const starGeometry = new T.BufferGeometry()
-  starGeometry.setAttribute(
-    'position',
-    new T.Float32BufferAttribute(starPositions, 3),
-  )
-  scene.add(
-    new T.Points(
-      starGeometry,
-      new T.PointsMaterial({
-        color: '#cfd8e0',
-        size: 0.18,
+      new T.SphereGeometry(R * 1.035, 64, 48),
+      new T.ShaderMaterial({
         transparent: true,
-        opacity: 0.55,
+        depthWrite: false,
+        uniforms: { color: { value: new T.Color(ATMOSPHERE) } },
+        vertexShader: `varying vec3 vNormal;
+          void main() {
+            vNormal = normalize(normalMatrix * normal);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }`,
+        fragmentShader: `uniform vec3 color;
+          varying vec3 vNormal;
+          void main() {
+            float edge = pow(1.0 - abs(vNormal.z), 3.0);
+            gl_FragColor = vec4(color, edge * 0.55);
+          }`,
       }),
     ),
   )
+
+  // Clouds: soft white puffs that drift slowly around the planet
+  const cloudMaterial = new T.MeshStandardMaterial({
+    color: '#ffffff',
+    roughness: 1,
+    transparent: true,
+    opacity: 0.85,
+    flatShading: true,
+  })
+  const puff = new T.IcosahedronGeometry(1, 1)
+  const clouds = Array.from({ length: 5 }, (_, i) => {
+    const pivot = new T.Group()
+    pivot.quaternion.setFromUnitVectors(UP, new T.Vector3().randomDirection())
+    const cloud = new T.Group()
+    cloud.position.y = R + 0.5 + (i % 3) * 0.1
+    for (let k = 0; k < 3; k++) {
+      const m = new T.Mesh(puff, cloudMaterial)
+      m.position.set((k - 1) * 0.32, k === 1 ? 0.05 : 0, (k % 2) * 0.1)
+      m.scale.set(0.3, 0.13, 0.22).multiplyScalar(k === 1 ? 1.25 : 1)
+      cloud.add(m)
+    }
+    pivot.add(cloud)
+    planet.add(pivot)
+    return {
+      pivot,
+      axis: new T.Vector3().randomDirection(),
+      speed: 0.02 + Math.random() * 0.02,
+    }
+  })
 
   // --- Markers: a slim pin with a pulsing ring at each place ---
   const placeVectors = options.places.map(toVector)
@@ -201,7 +264,7 @@ export function createGlobe(container: HTMLElement, options: Options) {
     pin.quaternion.copy(alignment(UP, RIGHT, v, anyTangent(v)))
     const stem = new T.Mesh(
       new T.CylinderGeometry(0.02, 0.02, 0.9, 6),
-      new T.MeshBasicMaterial({ color: INK }),
+      new T.MeshBasicMaterial({ color: '#5b6f80' }),
     )
     stem.position.y = 0.45
     const head = new T.Mesh(
@@ -227,6 +290,18 @@ export function createGlobe(container: HTMLElement, options: Options) {
   // --- Traveler ---
   const traveler = createTraveler()
   traveler.root.scale.setScalar(TRAVELER_SCALE)
+  const shadow = new T.Mesh(
+    new T.CircleGeometry(0.4, 24),
+    new T.MeshBasicMaterial({
+      color: INK,
+      transparent: true,
+      opacity: 0.16,
+      depthWrite: false,
+    }),
+  )
+  shadow.rotation.x = -Math.PI / 2
+  shadow.position.y = 0.02
+  traveler.root.add(shadow)
   planet.add(traveler.root)
   const position = toVector(options.start)
   // Start facing east, so we see them in profile
@@ -445,6 +520,10 @@ export function createGlobe(container: HTMLElement, options: Options) {
     else camera.clearViewOffset()
     camera.updateMatrixWorld()
 
+    // Drift the clouds
+    if (!reduced)
+      clouds.forEach((c) => c.pivot.rotateOnAxis(c.axis, c.speed * dt))
+
     // Pulse the marker rings
     markers.forEach((m, i) => {
       const pulse = reduced ? 1 : 1 + Math.sin(now / 500 + i) * 0.08
@@ -461,7 +540,7 @@ export function createGlobe(container: HTMLElement, options: Options) {
       const y = (-normal.y * 0.5 + 0.5) * innerHeight
       return { x, y, visible: facing > 0.2 && normal.z < 1 }
     })
-    options.onFrame?.({ labels, near, hover })
+    options.onFrame?.({ labels, position: toPlace(position), near, hover })
 
     renderer.render(scene, camera)
     if (++frameCount === 2) options.onReady?.()

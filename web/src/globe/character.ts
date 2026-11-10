@@ -3,13 +3,13 @@
 import * as T from 'three'
 
 const colors = {
-  coat: '#c7b299',
-  trousers: '#3a4048',
+  coat: '#34485a',
+  trousers: '#262d35',
   shoes: '#18191b',
   skin: '#dcb597',
   hair: '#221c19',
   collar: '#ece6da',
-  bag: '#7a5a3e',
+  bag: '#8a7560',
 }
 
 function part(

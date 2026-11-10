@@ -8,18 +8,20 @@ export function ProjectsPanel() {
       {projects.map((project) => (
         <li
           key={project.slug}
-          className="rounded-xl border border-white/10 bg-white/5 p-5"
+          className="rounded-xl border border-[#1c2733]/10 bg-white/70 p-5"
         >
-          <p className="text-xs tracking-wide text-white/50">{project.year}</p>
+          <p className="text-xs tracking-wide text-[#1c2733]/50">
+            {project.year}
+          </p>
           <h3 className="mt-1 font-display text-2xl">{project.title}</h3>
-          <p className="mt-2 text-sm leading-relaxed text-white/65">
+          <p className="mt-2 text-sm leading-relaxed text-[#1c2733]/65">
             {project.summary}
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {project.tags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-full border border-white/15 px-2.5 py-0.5 text-xs"
+                className="rounded-full border border-[#1c2733]/15 px-2.5 py-0.5 text-xs"
               >
                 {tag}
               </span>
@@ -41,14 +43,16 @@ export function ProjectsPanel() {
 
 export function ExperiencePanel() {
   return (
-    <ol className="space-y-6 border-l border-white/15 pl-5">
+    <ol className="space-y-6 border-l border-[#1c2733]/15 pl-5">
       {about.experience.map((item) => (
         <li key={item.role + item.org}>
-          <p className="text-xs tracking-wide text-white/50">{item.period}</p>
+          <p className="text-xs tracking-wide text-[#1c2733]/50">
+            {item.period}
+          </p>
           <h3 className="mt-1 font-medium">
             {item.role} · {item.org}
           </h3>
-          <p className="mt-1 text-sm leading-relaxed text-white/65">
+          <p className="mt-1 text-sm leading-relaxed text-[#1c2733]/65">
             {item.description}
           </p>
         </li>
@@ -60,17 +64,17 @@ export function ExperiencePanel() {
 export function AboutPanel() {
   return (
     <>
-      <dl className="grid gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10">
+      <dl className="grid gap-px overflow-hidden rounded-xl border border-[#1c2733]/10 bg-[#1c2733]/10">
         {profile.now.map((item) => (
-          <div key={item.label} className="bg-[#161d24] px-4 py-3">
-            <dt className="text-xs tracking-wide text-white/50">
+          <div key={item.label} className="bg-white/90 px-4 py-3">
+            <dt className="text-xs tracking-wide text-[#1c2733]/50">
               {item.label}
             </dt>
             <dd className="mt-0.5 text-sm font-medium">{item.value}</dd>
           </div>
         ))}
       </dl>
-      <div className="mt-6 space-y-4 text-sm leading-relaxed text-white/70">
+      <div className="mt-6 space-y-4 text-sm leading-relaxed text-[#1c2733]/70">
         {about.paragraphs.map((text) => (
           <p key={text}>{text}</p>
         ))}
@@ -88,7 +92,7 @@ export function ContactPanel() {
             href={social.url}
             target={social.url.startsWith('http') ? '_blank' : undefined}
             rel="noreferrer"
-            className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-5 py-4 hover:border-(--accent)"
+            className="flex items-center justify-between rounded-xl border border-[#1c2733]/10 bg-white/70 px-5 py-4 hover:border-(--accent)"
           >
             <span>{social.label}</span>
             <span aria-hidden>↗</span>
