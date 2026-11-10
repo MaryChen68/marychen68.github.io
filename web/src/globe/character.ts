@@ -13,7 +13,6 @@ import {
 const AVATAR_URL = `${import.meta.env.BASE_URL}avatar.vrm`
 // How tall the avatar stands, in traveler units
 const HEIGHT = 2.2
-const GLOW = '#ffe2a3'
 
 // A soft round glow, drawn once and reused for the halo and the motes
 function glowTexture() {
@@ -67,7 +66,7 @@ export function createTraveler(): Traveler {
     })
     .catch((error) => console.warn('Could not load the avatar:', error))
 
-  // Halo behind the figure, and a warm light that falls on the ground
+  // Halo behind the figure (no point light: it tints the avatar's clothes)
   const texture = glowTexture()
   const halo = new T.Sprite(
     new T.SpriteMaterial({
@@ -81,9 +80,6 @@ export function createTraveler(): Traveler {
   halo.scale.setScalar(3)
   halo.renderOrder = -1
   root.add(halo)
-  const light = new T.PointLight(GLOW, 4, 3.5, 1.5)
-  light.position.y = 0.15
-  root.add(light)
 
   // Motes of light that rise around the figure and fade out
   const motes = Array.from({ length: 7 }, (_, i) => {
