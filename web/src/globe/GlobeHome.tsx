@@ -1,7 +1,6 @@
 // Home page: a 3D globe with an HTML overlay on top.
 import { useEffect, useRef, useState } from 'react'
 import { profile } from '../content'
-import { Ambience } from './audio'
 import type { FrameInfo, Globe } from './scene'
 import { stations } from './stations'
 
@@ -15,14 +14,12 @@ export default function GlobeHome() {
   const globeRef = useRef<Globe | null>(null)
   const labelRefs = useRef<(HTMLButtonElement | null)[]>([])
   const coordsRef = useRef<HTMLSpanElement>(null)
-  const [audio] = useState(() => new Ambience())
 
   const [exploring, setExploring] = useState(false)
   const [active, setActive] = useState(-1)
   const [visited, setVisited] = useState<number[]>([])
   const [ready, setReady] = useState(false)
   const [failed, setFailed] = useState(false)
-  const [soundOn, setSoundOn] = useState(false)
   const [status, setStatus] = useState('')
 
   // Create the 3D scene once. three.js loads lazily so the page shell appears fast.
@@ -79,9 +76,8 @@ export default function GlobeHome() {
       cancelled = true
       globe?.destroy()
       globeRef.current = null
-      audio.stop()
     }
-  }, [audio])
+  }, [])
 
   useEffect(() => {
     globeRef.current?.setLayout({
@@ -112,20 +108,6 @@ export default function GlobeHome() {
     setExploring(false)
     setStatus('')
     globeRef.current?.overview()
-  }
-
-  async function toggleSound() {
-    if (soundOn) {
-      audio.stop()
-      setSoundOn(false)
-      return
-    }
-    try {
-      await audio.start()
-      setSoundOn(true)
-    } catch {
-      setStatus('Sound is not available in this browser.')
-    }
   }
 
   const station = active >= 0 ? stations[active] : null
@@ -164,28 +146,6 @@ export default function GlobeHome() {
           <span className="block text-[10px] tracking-[0.25em] text-[#1c2733]/55 uppercase">
             Portfolio
           </span>
-        </button>
-        <button
-          onClick={toggleSound}
-          aria-pressed={soundOn}
-          aria-label={soundOn ? 'Turn sound off' : 'Turn sound on'}
-          className="pointer-events-auto grid h-10 w-10 place-items-center rounded-full border border-[#1c2733]/10 bg-white/70 backdrop-blur"
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-          >
-            <path d="M4 9h4l5-4v14l-5-4H4z" />
-            {soundOn ? (
-              <path d="M16 9c1.5 1.5 1.5 4.5 0 6M19 6c3 3 3 9 0 12" />
-            ) : (
-              <path d="m16 9 5 6m0-6-5 6" />
-            )}
-          </svg>
         </button>
       </header>
 
