@@ -1,16 +1,32 @@
-// The traveler: a small cloaked figure with a white mask, a glowing cape trim,
-// a soft halo, and motes of light drifting around them.
+// The traveler: a young woman with long curly hair and brown glasses, in a robe
+// and cape with a glowing hem, a soft halo, and motes of light around her.
 // Feet sit at y = 0 and the figure faces +Z.
 import * as T from 'three'
 
 const colors = {
   cape: '#2f4b63',
-  robe: '#e4eaef',
+  robe: '#b9c8d4',
   legs: '#26303a',
-  hair: '#2a2f36',
-  skin: '#f0e4da',
-  mask: '#fbfbf8',
+  hair: '#2b211d',
+  skin: '#f2d4bf',
+  skinShade: '#e3b9a0',
+  lips: '#c27c6c',
+  crease: '#a77c68',
+  glasses: '#7a4b2a',
   glow: '#ffe2a3',
+}
+
+// A thin curved line through three points (eyelid crease, smile)
+function curve(
+  parent: T.Object3D,
+  color: string,
+  points: [number, number, number][],
+  radius = 0.004,
+) {
+  const path = new T.CatmullRomCurve3(points.map((p) => new T.Vector3(...p)))
+  parent.add(
+    new T.Mesh(new T.TubeGeometry(path, 12, radius, 5), material(color)),
+  )
 }
 
 function material(color: string, glow = 0) {
@@ -138,40 +154,115 @@ export function createTraveler(): Traveler {
     return arm
   })
 
-  // Head: hair, and a softly glowing white mask with two eye slits
+  // Head
   const head = new T.Group()
   head.position.y = 1.62
   body.add(head)
-  part(head, sphere, material(colors.skin), [0, 0, 0], [0.26, 0.27, 0.26])
-  part(
-    head,
-    sphere,
-    material(colors.hair),
-    [0, 0.06, -0.04],
-    [0.29, 0.27, 0.28],
-  )
-  part(
-    head,
-    sphere,
-    material(colors.hair),
-    [0, -0.08, -0.08],
-    [0.27, 0.2, 0.22],
-  )
-  part(
-    head,
-    sphere,
-    material(colors.mask, 0.35),
-    [0, -0.01, 0.17],
-    [0.19, 0.21, 0.1],
-  )
-  for (const side of [-1, 1])
+  part(head, sphere, material(colors.skin), [0, 0, 0], [0.25, 0.27, 0.25])
+
+  // Hair: a cap on top, side-swept bangs, and long curls down the back
+  const hair = material(colors.hair)
+  part(head, sphere, hair, [0, 0.07, -0.06], [0.27, 0.26, 0.26])
+  part(head, sphere, hair, [-0.08, 0.16, 0.17], [0.16, 0.07, 0.08]).rotation.z =
+    0.35
+  part(head, sphere, hair, [0.1, 0.18, 0.15], [0.12, 0.06, 0.08]).rotation.z =
+    -0.2
+  for (let i = 0; i < 11; i++) {
+    // Strands spread around the back and sides, leaving the face clear
+    const a = Math.PI * (0.32 + (i / 10) * 1.36)
+    const out = new T.Vector3(Math.sin(a), 0, Math.cos(a))
+    const side = new T.Vector3(Math.cos(a), 0, -Math.sin(a))
+    for (let k = 0; k < 6; k++) {
+      const wave = Math.sin(k * 1.9 + i * 1.3) * 0.035
+      const r = 0.23 + k * 0.012
+      const p = out.clone().multiplyScalar(r).addScaledVector(side, wave)
+      part(
+        head,
+        sphere,
+        hair,
+        [p.x, -0.04 - k * 0.11, p.z - 0.02],
+        [0.075 - k * 0.004, 0.08, 0.075 - k * 0.004],
+      )
+    }
+  }
+
+  // Face: eyes with a double-eyelid crease, brows, nose, and a small smile
+  for (const side of [-1, 1]) {
+    const x = side * 0.085
+    part(
+      head,
+      sphere,
+      material(colors.hair),
+      [x, -0.01, 0.222],
+      [0.032, 0.026, 0.02],
+    )
+    part(
+      head,
+      sphere,
+      material('#ffffff'),
+      [x + 0.01, 0.0, 0.24],
+      [0.008, 0.008, 0.004],
+    )
+    curve(head, colors.crease, [
+      [x - 0.034, 0.016, 0.228],
+      [x, 0.032, 0.238],
+      [x + 0.034, 0.016, 0.228],
+    ])
     part(
       head,
       new T.BoxGeometry(1, 1, 1),
-      material(colors.legs),
-      [side * 0.07, 0.02, 0.265],
-      [0.07, 0.015, 0.01],
+      hair,
+      [x, 0.075, 0.232],
+      [0.06, 0.012, 0.01],
+    ).rotation.z = side * -0.08
+  }
+  part(
+    head,
+    sphere,
+    material(colors.skinShade),
+    [0, -0.06, 0.245],
+    [0.018, 0.02, 0.015],
+  )
+  curve(
+    head,
+    colors.lips,
+    [
+      [-0.03, -0.112, 0.228],
+      [0, -0.124, 0.236],
+      [0.03, -0.112, 0.228],
+    ],
+    0.005,
+  )
+
+  // Brown round glasses
+  const frame = colors.glasses
+  for (const side of [-1, 1]) {
+    part(head, new T.TorusGeometry(0.058, 0.008, 8, 28), material(frame), [
+      side * 0.085,
+      -0.005,
+      0.262,
+    ])
+    curve(
+      head,
+      frame,
+      [
+        [side * 0.143, 0, 0.255],
+        [side * 0.22, 0.01, 0.15],
+        [side * 0.25, 0.02, 0.02],
+      ],
+      0.006,
     )
+  }
+  curve(
+    head,
+    frame,
+    [
+      [-0.027, 0.005, 0.265],
+      [0, 0.015, 0.27],
+      [0.027, 0.005, 0.265],
+    ],
+    0.006,
+  )
 
   // Halo behind the figure, and a warm light that falls on the ground
   const texture = glowTexture()
@@ -179,12 +270,12 @@ export function createTraveler(): Traveler {
     new T.SpriteMaterial({
       map: texture,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.6,
       depthWrite: false,
     }),
   )
   halo.position.y = 1.1
-  halo.scale.setScalar(3)
+  halo.scale.setScalar(2.6)
   halo.renderOrder = -1
   root.add(halo)
   const light = new T.PointLight(colors.glow, 4, 3.5, 1.5)
@@ -216,7 +307,7 @@ export function createTraveler(): Traveler {
     // The cape lifts behind them as they walk
     cape.rotation.x = 0.08 + 0.3 * speed + Math.sin(time * 3) * 0.03
 
-    halo.material.opacity = 0.8 + Math.sin(time * 1.6) * 0.1
+    halo.material.opacity = 0.5 + Math.sin(time * 1.6) * 0.08
     motes.forEach((mote, i) => {
       const t = (time * 0.25 + mote.userData.offset) % 1
       const angle = i * 2.4 + time * 0.4

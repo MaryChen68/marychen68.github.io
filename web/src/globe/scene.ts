@@ -447,6 +447,15 @@ export function createGlobe(container: HTMLElement, options: Options) {
         walkTime += dt
       }
     }
+    // When standing still, slowly turn to face the viewer
+    if (!moving) {
+      const toViewer = FRONT.clone().applyQuaternion(
+        planet.quaternion.clone().invert(),
+      )
+      toViewer.addScaledVector(position, -toViewer.dot(position))
+      if (toViewer.lengthSq() > 0.01)
+        forward.lerp(toViewer.normalize(), reduced ? 1 : 1 - Math.exp(-dt * 3))
+    }
     // Keep "forward" flat against the surface
     forward
       .sub(position.clone().multiplyScalar(forward.dot(position)))
