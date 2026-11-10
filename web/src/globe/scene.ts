@@ -1,4 +1,4 @@
-// The 3D globe: solid land on a pale ocean, section markers, and a traveler.
+// The 3D globe at night: solid land on a deep ocean, section markers, and a traveler.
 // The globe keeps north up and only turns when dragged or when a route needs it.
 import * as T from 'three'
 import { createTraveler } from './character'
@@ -12,10 +12,10 @@ const ARRIVE_ANGLE = 0.07 // how close counts as "arrived", in radians
 const VIEW_LIFT = 0.85
 const MAX_TILT = 1.1
 
-const INK = '#2e332f'
-const LAND = '#9aa392'
-const OCEAN = '#e2edf3'
-const ACCENT = '#b4532a'
+const INK = '#c9d1d8'
+const LAND = '#6f8578'
+const OCEAN = '#22323f'
+const ACCENT = '#e3a857'
 const UP = new T.Vector3(0, 1, 0)
 const RIGHT = new T.Vector3(1, 0, 0)
 const FRONT = new T.Vector3(0, 0, 1)
@@ -141,8 +141,8 @@ export function createGlobe(container: HTMLElement, options: Options) {
   const camera = new T.PerspectiveCamera(35, innerWidth / innerHeight, 0.1, 200)
   let distance = innerWidth < 700 ? 30 : 20
 
-  scene.add(new T.HemisphereLight('#ffffff', '#ddd8cc', 2.8))
-  const key = new T.DirectionalLight('#fff4e6', 1.3)
+  scene.add(new T.HemisphereLight('#dfe8f0', '#1a222b', 2.2))
+  const key = new T.DirectionalLight('#ffe9c7', 1.6)
   key.position.set(6, 8, 12)
   scene.add(key)
 
@@ -158,7 +158,32 @@ export function createGlobe(container: HTMLElement, options: Options) {
   scene.add(
     new T.Mesh(
       new T.SphereGeometry(R * 1.02, 64, 48),
-      new T.MeshBasicMaterial({ color: '#d8d3c8', side: T.BackSide }),
+      new T.MeshBasicMaterial({ color: '#2c3a46', side: T.BackSide }),
+    ),
+  )
+
+  // A few faint stars far behind the globe
+  const starPositions: number[] = []
+  for (let i = 0; i < 500; i++) {
+    const v = new T.Vector3()
+      .randomDirection()
+      .multiplyScalar(60 + Math.random() * 40)
+    starPositions.push(v.x, v.y, v.z)
+  }
+  const starGeometry = new T.BufferGeometry()
+  starGeometry.setAttribute(
+    'position',
+    new T.Float32BufferAttribute(starPositions, 3),
+  )
+  scene.add(
+    new T.Points(
+      starGeometry,
+      new T.PointsMaterial({
+        color: '#cfd8e0',
+        size: 0.18,
+        transparent: true,
+        opacity: 0.55,
+      }),
     ),
   )
 

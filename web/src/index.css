@@ -17,12 +17,12 @@
 }
 
 .dark {
-  --bg: #1a1714;
-  --surface: #24201c;
-  --text: #f1ebe1;
-  --muted: #a89e92;
-  --border: #3a332c;
-  --accent: #f08a68;
+  --bg: #11161c;
+  --surface: #1a222b;
+  --text: #eef1f3;
+  --muted: #9aa6b0;
+  --border: #2a343e;
+  --accent: #e3a857;
 }
 
 @theme inline {
