@@ -1,15 +1,20 @@
-// The 3D globe: dotted continents, section markers, and a traveler.
-// The traveler stays on top of the globe; walking turns the planet beneath them.
+// The 3D globe: dotted land and ocean, section markers, and a traveler.
+// The globe keeps north up and only turns when dragged or when a route needs it.
 import * as T from 'three'
 import { createTraveler } from './character'
 import { isLand } from './landmask'
 
 const R = 5 // globe radius
-const TRAVELER_SCALE = 0.5
-const WALK_SPEED = 0.3 // radians per second along the surface
+const DOT_COUNT = 60000
+const TRAVELER_SCALE = 0.55
+const WALK_SPEED = 0.35 // radians per second along the surface
 const ARRIVE_ANGLE = 0.07 // how close counts as "arrived", in radians
+// Keep the traveler this far above the center of the view (radians), so we see them standing
+const VIEW_LIFT = 0.85
+const MAX_TILT = 1.1
 
 const INK = '#2e332f'
+const OCEAN_DOT = '#d3cec3'
 const ACCENT = '#b4532a'
 const UP = new T.Vector3(0, 1, 0)
 const RIGHT = new T.Vector3(1, 0, 0)
@@ -70,9 +75,17 @@ function anyTangent(up: T.Vector3) {
   return new T.Vector3().crossVectors(ref, up).normalize()
 }
 
-// Points spread evenly over a sphere (Fibonacci lattice), kept only on land
-function landDots(count: number) {
-  const dots: T.Vector3[] = []
+// The globe turn (yaw around Y, then tilt around X) that brings point `p` to the front
+function viewOf(p: T.Vector3) {
+  const yaw = Math.atan2(-p.x, p.z)
+  const tilt = Math.atan2(p.y, Math.hypot(p.x, p.z)) - VIEW_LIFT
+  return { yaw, tilt: T.MathUtils.clamp(tilt, -MAX_TILT, MAX_TILT) }
+}
+
+// Points spread evenly over a sphere (Fibonacci lattice), split into land and ocean
+function lattice(count: number) {
+  const land: T.Vector3[] = []
+  const ocean: T.Vector3[] = []
   const golden = Math.PI * (3 - Math.sqrt(5))
   for (let i = 0; i < count; i++) {
     const y = 1 - (i / (count - 1)) * 2
@@ -84,9 +97,26 @@ function landDots(count: number) {
     )
     const lat = T.MathUtils.radToDeg(Math.asin(v.y))
     const lon = T.MathUtils.radToDeg(Math.atan2(v.z, -v.x)) - 180
-    if (isLand(lat, lon < -180 ? lon + 360 : lon)) dots.push(v)
+    if (isLand(lat, lon < -180 ? lon + 360 : lon)) land.push(v)
+    else if (i % 3 === 0) ocean.push(v)
   }
-  return dots
+  return { land, ocean }
+}
+
+function dotLayer(points: T.Vector3[], size: number, color: string) {
+  const mesh = new T.InstancedMesh(
+    new T.CircleGeometry(size, 6),
+    new T.MeshBasicMaterial({ color }),
+    points.length,
+  )
+  const helper = new T.Object3D()
+  points.forEach((v, i) => {
+    helper.position.copy(v).multiplyScalar(R)
+    helper.lookAt(v.clone().multiplyScalar(R * 2))
+    helper.updateMatrix()
+    mesh.setMatrixAt(i, helper.matrix)
+  })
+  return mesh
 }
 
 export function createGlobe(container: HTMLElement, options: Options) {
@@ -105,7 +135,7 @@ export function createGlobe(container: HTMLElement, options: Options) {
 
   const scene = new T.Scene()
   const camera = new T.PerspectiveCamera(35, innerWidth / innerHeight, 0.1, 200)
-  let distance = innerWidth < 700 ? 30 : 21
+  let distance = innerWidth < 700 ? 30 : 20
 
   scene.add(new T.HemisphereLight('#ffffff', '#b9b3a6', 1.6))
   const key = new T.DirectionalLight('#fff4e6', 1.8)
@@ -118,7 +148,7 @@ export function createGlobe(container: HTMLElement, options: Options) {
 
   const globe = new T.Mesh(
     new T.SphereGeometry(R * 0.995, 64, 48),
-    new T.MeshBasicMaterial({ color: '#ebe7df' }),
+    new T.MeshBasicMaterial({ color: '#ece8e0' }),
   )
   planet.add(globe)
   scene.add(
@@ -128,20 +158,8 @@ export function createGlobe(container: HTMLElement, options: Options) {
     ),
   )
 
-  const dots = landDots(16000)
-  const dotMesh = new T.InstancedMesh(
-    new T.CircleGeometry(0.034, 6),
-    new T.MeshBasicMaterial({ color: INK }),
-    dots.length,
-  )
-  const helper = new T.Object3D()
-  dots.forEach((v, i) => {
-    helper.position.copy(v).multiplyScalar(R)
-    helper.lookAt(v.clone().multiplyScalar(R * 2))
-    helper.updateMatrix()
-    dotMesh.setMatrixAt(i, helper.matrix)
-  })
-  planet.add(dotMesh)
+  const { land, ocean } = lattice(DOT_COUNT)
+  planet.add(dotLayer(land, 0.03, INK), dotLayer(ocean, 0.022, OCEAN_DOT))
 
   // --- Markers: a slim pin with a pulsing ring at each place ---
   const placeVectors = options.places.map(toVector)
@@ -185,15 +203,15 @@ export function createGlobe(container: HTMLElement, options: Options) {
   traveler.root.scale.setScalar(TRAVELER_SCALE)
   planet.add(traveler.root)
   const position = toVector(options.start)
-  // Start facing west, so the northern hemisphere tilts toward the camera
-  const forward = anyTangent(position).negate()
+  // Start facing east, so we see them in profile
+  const forward = anyTangent(position)
   let destination: T.Vector3 | null = null
   let speed = 0
   let walkTime = 0
 
-  // follow = keep the traveler on top of the globe, walking to the right
-  let follow = true
-  planet.quaternion.copy(alignment(position, forward, UP, RIGHT))
+  // --- View: yaw/tilt of the globe; it follows the route while traveling ---
+  let view = viewOf(position)
+  let follow = false
 
   let layout = { panelOpen: false, introOpen: true }
   let viewOffset = { x: 0, y: 0 }
@@ -206,6 +224,8 @@ export function createGlobe(container: HTMLElement, options: Options) {
   const pointer = new T.Vector2()
   const tmp = new T.Vector3()
   const toCamera = new T.Vector3()
+  const yawQ = new T.Quaternion()
+  const tiltQ = new T.Quaternion()
 
   function walkTo(target: T.Vector3) {
     destination = target.clone().normalize()
@@ -216,9 +236,10 @@ export function createGlobe(container: HTMLElement, options: Options) {
   function travelTo(index: number) {
     const target = placeVectors[index]
     if (!target) return
-    follow = true
-    if (position.angleTo(target) < ARRIVE_ANGLE) options.onArrive?.(index)
-    else walkTo(target)
+    if (position.angleTo(target) < ARRIVE_ANGLE) {
+      follow = true
+      options.onArrive?.(index)
+    } else walkTo(target)
   }
 
   // --- Input: drag to turn the globe, scroll to zoom, click to walk ---
@@ -264,16 +285,14 @@ export function createGlobe(container: HTMLElement, options: Options) {
       drag.moved = true
     if (!drag.moved) return
     follow = false
-    const turn = 0.005
-    const yaw = new T.Quaternion().setFromAxisAngle(
-      UP,
-      (e.clientX - drag.lastX) * turn,
-    )
-    const pitch = new T.Quaternion().setFromAxisAngle(
-      RIGHT,
-      (e.clientY - drag.lastY) * turn,
-    )
-    planet.quaternion.premultiply(yaw).premultiply(pitch)
+    view = {
+      yaw: view.yaw + (e.clientX - drag.lastX) * 0.005,
+      tilt: T.MathUtils.clamp(
+        view.tilt + (e.clientY - drag.lastY) * 0.005,
+        -MAX_TILT,
+        MAX_TILT,
+      ),
+    }
     drag.lastX = e.clientX
     drag.lastY = e.clientY
     canvas.style.cursor = 'grabbing'
@@ -292,7 +311,7 @@ export function createGlobe(container: HTMLElement, options: Options) {
   }
   const onWheel = (e: WheelEvent) => {
     e.preventDefault()
-    distance = T.MathUtils.clamp(distance + e.deltaY * 0.01, 14, 34)
+    distance = T.MathUtils.clamp(distance + e.deltaY * 0.01, 13, 34)
   }
   const onResize = () => {
     camera.aspect = innerWidth / innerHeight
@@ -346,15 +365,29 @@ export function createGlobe(container: HTMLElement, options: Options) {
       else options.onLeave?.()
     }
 
-    // Turn the planet so the traveler stands on top, facing right
+    // While traveling, turn the globe so the rest of the route stays in view
     if (follow) {
-      const target = alignment(position, forward, UP, RIGHT)
-      planet.quaternion.slerp(target, reduced ? 1 : 1 - Math.exp(-dt * 4))
+      const focus = destination
+        ? position.clone().add(destination).normalize()
+        : position
+      const goal = viewOf(focus)
+      const k = reduced ? 1 : 1 - Math.exp(-dt * 2)
+      const yawDiff =
+        T.MathUtils.euclideanModulo(
+          goal.yaw - view.yaw + Math.PI,
+          Math.PI * 2,
+        ) - Math.PI
+      view = {
+        yaw: view.yaw + yawDiff * k,
+        tilt: T.MathUtils.lerp(view.tilt, goal.tilt, k),
+      }
     }
+    yawQ.setFromAxisAngle(UP, view.yaw)
+    tiltQ.setFromAxisAngle(RIGHT, view.tilt)
+    planet.quaternion.copy(tiltQ).multiply(yawQ)
 
-    // Camera looks at the top of the globe from slightly above
-    camera.position.set(0, R * 0.55, distance)
-    camera.lookAt(0, R * 0.42, 0)
+    camera.position.set(0, 0, distance)
+    camera.lookAt(0, 0, 0)
 
     // Shift the view so the globe isn't hidden behind the intro or the panel
     const narrow = innerWidth < 700
@@ -413,7 +446,7 @@ export function createGlobe(container: HTMLElement, options: Options) {
     travelTo,
     setLayout: (next: { panelOpen: boolean; introOpen: boolean }) =>
       (layout = next),
-    // Stop walking and bring the traveler back on top
+    // Stop walking and bring the traveler back into view
     overview: () => {
       destination = null
       follow = true

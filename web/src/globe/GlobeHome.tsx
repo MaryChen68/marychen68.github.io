@@ -39,7 +39,7 @@ export default function GlobeHome() {
       info.labels.forEach((label, i) => {
         const el = labelRefs.current[i]
         if (!el) return
-        el.style.transform = `translate(${label.x}px, ${label.y}px) translate(-50%, -100%)`
+        el.style.transform = `translate(${label.x}px, ${label.y}px) translate(-50%, calc(-100% - 16px))`
         el.dataset.visible = String(label.visible)
         el.dataset.highlight = String(info.near === i || info.hover === i)
       })
