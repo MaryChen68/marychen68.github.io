@@ -1,109 +1,233 @@
-// The traveler: a simple figure in a long coat, built from basic shapes.
+// The traveler: a small cloaked figure with a white mask, a glowing cape trim,
+// a soft halo, and motes of light drifting around them.
 // Feet sit at y = 0 and the figure faces +Z.
 import * as T from 'three'
 
 const colors = {
-  coat: '#34485a',
-  trousers: '#262d35',
-  shoes: '#18191b',
-  skin: '#dcb597',
-  hair: '#221c19',
-  collar: '#ece6da',
-  bag: '#8a7560',
+  cape: '#2f4b63',
+  robe: '#e4eaef',
+  legs: '#26303a',
+  hair: '#2a2f36',
+  skin: '#f0e4da',
+  mask: '#fbfbf8',
+  glow: '#ffe2a3',
+}
+
+function material(color: string, glow = 0) {
+  return new T.MeshStandardMaterial({
+    color,
+    roughness: 0.8,
+    emissive: glow ? colors.glow : '#000000',
+    emissiveIntensity: glow,
+    side: T.DoubleSide,
+  })
 }
 
 function part(
   parent: T.Object3D,
   geometry: T.BufferGeometry,
-  color: string,
+  mat: T.Material,
   position: [number, number, number],
   scale: [number, number, number] = [1, 1, 1],
 ) {
-  const material = new T.MeshStandardMaterial({
-    color,
-    roughness: 0.85,
-    flatShading: true,
-  })
-  const mesh = new T.Mesh(geometry, material)
+  const mesh = new T.Mesh(geometry, mat)
   mesh.position.set(...position)
   mesh.scale.set(...scale)
   parent.add(mesh)
   return mesh
 }
 
-const capsule = new T.CapsuleGeometry(0.5, 1, 4, 10)
-const sphere = new T.SphereGeometry(1, 14, 10)
-const box = new T.BoxGeometry(1, 1, 1)
+// A soft round glow, drawn once and reused for the halo and the motes
+function glowTexture() {
+  const size = 128
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = size
+  const ctx = canvas.getContext('2d')!
+  const g = ctx.createRadialGradient(
+    size / 2,
+    size / 2,
+    0,
+    size / 2,
+    size / 2,
+    size / 2,
+  )
+  g.addColorStop(0, 'rgba(255, 236, 190, 1)')
+  g.addColorStop(0.35, 'rgba(255, 220, 150, 0.6)')
+  g.addColorStop(1, 'rgba(255, 226, 163, 0)')
+  ctx.fillStyle = g
+  ctx.fillRect(0, 0, size, size)
+  const texture = new T.CanvasTexture(canvas)
+  texture.colorSpace = T.SRGBColorSpace
+  return texture
+}
 
 export type Traveler = {
   root: T.Group
-  animate: (time: number, speed: number) => void
+  animate: (walkTime: number, speed: number, time: number) => void
 }
 
 export function createTraveler(): Traveler {
   const root = new T.Group()
+  const sphere = new T.SphereGeometry(1, 20, 14)
+  const capsule = new T.CapsuleGeometry(0.5, 1, 4, 10)
 
-  // Legs swing from the hip
+  // Short legs peeking out under the robe
   const legs = [-1, 1].map((side) => {
     const leg = new T.Group()
-    leg.position.set(side * 0.12, 1, 0)
-    part(leg, capsule, colors.trousers, [0, -0.47, 0], [0.19, 0.45, 0.2])
-    part(leg, box, colors.shoes, [0, -0.95, 0.05], [0.16, 0.09, 0.3])
+    leg.position.set(side * 0.1, 0.5, 0)
+    part(leg, capsule, material(colors.legs), [0, -0.25, 0], [0.11, 0.25, 0.12])
+    part(
+      leg,
+      sphere,
+      material(colors.legs),
+      [0, -0.48, 0.05],
+      [0.08, 0.05, 0.12],
+    )
     root.add(leg)
     return leg
   })
 
   const body = new T.Group()
-  body.position.y = 1
   root.add(body)
-  part(body, capsule, colors.coat, [0, 0.45, 0], [0.5, 0.42, 0.33])
+
+  // Robe: a bell shape from the hem up to the shoulders
+  const robeShape = [
+    new T.Vector2(0.36, 0.38),
+    new T.Vector2(0.33, 0.6),
+    new T.Vector2(0.26, 0.95),
+    new T.Vector2(0.2, 1.25),
+    new T.Vector2(0.12, 1.36),
+  ]
   part(
     body,
-    new T.CylinderGeometry(0.23, 0.29, 0.45, 12),
-    colors.coat,
-    [0, -0.05, 0],
-  )
-  part(body, box, colors.collar, [0, 0.82, 0.13], [0.13, 0.12, 0.04])
-  part(body, box, colors.bag, [0.27, 0.1, 0.05], [0.07, 0.22, 0.26])
-  part(
-    body,
-    new T.CylinderGeometry(1, 1, 1, 8),
-    colors.skin,
-    [0, 0.93, 0],
-    [0.065, 0.1, 0.065],
+    new T.LatheGeometry(robeShape, 24),
+    material(colors.robe),
+    [0, 0, 0],
   )
 
-  const head = new T.Group()
-  head.position.y = 1.13
-  body.add(head)
-  part(head, sphere, colors.skin, [0, 0, 0.01], [0.16, 0.19, 0.17])
-  part(head, sphere, colors.hair, [0, 0.05, -0.02], [0.175, 0.17, 0.18])
-  part(head, sphere, colors.hair, [0, -0.05, -0.05], [0.18, 0.15, 0.15])
-  part(head, sphere, colors.hair, [0, -0.02, -0.2], [0.075, 0.075, 0.075])
+  // Cape: an open half-cone hanging from the shoulders, with a glowing hem
+  const cape = new T.Group()
+  cape.position.y = 1.32
+  body.add(cape)
+  // Covers the back 70% of the way around, so the robe shows at the sides
+  const arc = [Math.PI * 0.65, Math.PI * 0.7] as const
+  const capeGeo = new T.CylinderGeometry(0.18, 0.42, 0.85, 24, 1, true, ...arc)
+  part(cape, capeGeo, material(colors.cape), [0, -0.42, -0.02])
+  const trimGeo = new T.CylinderGeometry(0.42, 0.43, 0.05, 24, 1, true, ...arc)
+  part(cape, trimGeo, material(colors.glow, 1.6), [0, -0.85, -0.02])
 
-  // Arms swing from the shoulder
+  // Small arms in the robe's sleeves
   const arms = [-1, 1].map((side) => {
     const arm = new T.Group()
-    arm.position.set(side * 0.27, 0.8, 0)
-    part(arm, capsule, colors.coat, [side * 0.02, -0.3, 0], [0.13, 0.3, 0.14])
+    arm.position.set(side * 0.2, 1.2, 0)
+    part(
+      arm,
+      capsule,
+      material(colors.robe),
+      [side * 0.04, -0.2, 0],
+      [0.09, 0.18, 0.09],
+    )
     part(
       arm,
       sphere,
-      colors.skin,
-      [side * 0.025, -0.66, 0.01],
-      [0.06, 0.07, 0.06],
+      material(colors.skin),
+      [side * 0.05, -0.42, 0.01],
+      [0.055, 0.055, 0.055],
     )
     body.add(arm)
     return arm
   })
 
-  function animate(time: number, speed: number) {
-    const swing = Math.sin(time * 8.5)
-    legs[0].rotation.x = swing * 0.45 * speed
-    legs[1].rotation.x = -swing * 0.45 * speed
-    arms[0].rotation.x = -swing * 0.32 * speed
-    arms[1].rotation.x = swing * 0.32 * speed
-    body.position.y = 1 + Math.abs(swing) * 0.04 * speed
+  // Head: hair, and a softly glowing white mask with two eye slits
+  const head = new T.Group()
+  head.position.y = 1.62
+  body.add(head)
+  part(head, sphere, material(colors.skin), [0, 0, 0], [0.26, 0.27, 0.26])
+  part(
+    head,
+    sphere,
+    material(colors.hair),
+    [0, 0.06, -0.04],
+    [0.29, 0.27, 0.28],
+  )
+  part(
+    head,
+    sphere,
+    material(colors.hair),
+    [0, -0.08, -0.08],
+    [0.27, 0.2, 0.22],
+  )
+  part(
+    head,
+    sphere,
+    material(colors.mask, 0.35),
+    [0, -0.01, 0.17],
+    [0.19, 0.21, 0.1],
+  )
+  for (const side of [-1, 1])
+    part(
+      head,
+      new T.BoxGeometry(1, 1, 1),
+      material(colors.legs),
+      [side * 0.07, 0.02, 0.265],
+      [0.07, 0.015, 0.01],
+    )
+
+  // Halo behind the figure, and a warm light that falls on the ground
+  const texture = glowTexture()
+  const halo = new T.Sprite(
+    new T.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      opacity: 0.9,
+      depthWrite: false,
+    }),
+  )
+  halo.position.y = 1.1
+  halo.scale.setScalar(3)
+  halo.renderOrder = -1
+  root.add(halo)
+  const light = new T.PointLight(colors.glow, 4, 3.5, 1.5)
+  light.position.y = 0.9
+  root.add(light)
+
+  // Motes of light that rise around the figure and fade out
+  const motes = Array.from({ length: 7 }, (_, i) => {
+    const mote = new T.Sprite(
+      new T.SpriteMaterial({
+        map: texture,
+        transparent: true,
+        depthWrite: false,
+      }),
+    )
+    mote.userData.offset = i / 7
+    root.add(mote)
+    return mote
+  })
+
+  function animate(walkTime: number, speed: number, time: number) {
+    const swing = Math.sin(walkTime * 9)
+    legs[0].rotation.x = swing * 0.5 * speed
+    legs[1].rotation.x = -swing * 0.5 * speed
+    arms[0].rotation.x = -swing * 0.35 * speed
+    arms[1].rotation.x = swing * 0.35 * speed
+    body.position.y =
+      Math.abs(swing) * 0.05 * speed + Math.sin(time * 2) * 0.015
+    // The cape lifts behind them as they walk
+    cape.rotation.x = 0.08 + 0.3 * speed + Math.sin(time * 3) * 0.03
+
+    halo.material.opacity = 0.8 + Math.sin(time * 1.6) * 0.1
+    motes.forEach((mote, i) => {
+      const t = (time * 0.25 + mote.userData.offset) % 1
+      const angle = i * 2.4 + time * 0.4
+      mote.position.set(
+        Math.cos(angle) * 0.55,
+        0.3 + t * 1.9,
+        Math.sin(angle) * 0.55,
+      )
+      mote.scale.setScalar(0.18 * (1 - t * 0.6))
+      mote.material.opacity = Math.sin(t * Math.PI) * 0.9
+    })
   }
 
   root.traverse((o) => {

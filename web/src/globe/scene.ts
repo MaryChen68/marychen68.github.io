@@ -5,7 +5,7 @@ import { createTraveler } from './character'
 import { isLand } from './landmask'
 
 const R = 5 // globe radius
-const TRAVELER_SCALE = 0.55
+const TRAVELER_SCALE = 0.78
 const WALK_SPEED = 0.35 // radians per second along the surface
 const ARRIVE_ANGLE = 0.07 // how close counts as "arrived", in radians
 // Keep the traveler this far above the center of the view (radians), so we see them standing
@@ -454,7 +454,7 @@ export function createGlobe(container: HTMLElement, options: Options) {
     speed = T.MathUtils.lerp(speed, moving ? 1 : 0, 1 - Math.exp(-dt * 12))
     traveler.root.position.copy(position).multiplyScalar(R)
     traveler.root.quaternion.copy(alignment(UP, FRONT, position, forward))
-    traveler.animate(walkTime, reduced ? 0 : speed)
+    traveler.animate(walkTime, reduced ? 0 : speed, reduced ? 0 : now / 1000)
 
     // Arriving at or leaving a place
     const nextNear = placeVectors.findIndex(
