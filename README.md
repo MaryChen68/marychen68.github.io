@@ -5,6 +5,7 @@ My personal website: [marychen68.github.io](https://marychen68.github.io)
 ## Tech stack
 
 - **Frontend:** Vite, React, TypeScript, React Router, Tailwind CSS
+- **3D:** three.js
 - **Deploy:** GitHub Actions → GitHub Pages
 
 ## Run locally
@@ -40,6 +41,7 @@ web/                # React frontend
     content.ts      # All site text: edit this to change content
     components/     # Reusable UI pieces (navbar, cards, ...)
     pages/          # One file per page
+    globe/          # 3D globe home page (scene, character, sound, overlay)
 ```
 
 ## Deployment

@@ -8,21 +8,21 @@
  * Change a value once and the whole site updates.
  */
 :root {
-  --bg: #f5f0e6;
-  --surface: #fffcf6;
-  --text: #2b2622;
-  --muted: #6f665d;
-  --border: #e3d9c8;
-  --accent: #d9603f;
+  --bg: #eef2f5;
+  --surface: #f8fbfc;
+  --text: #1c2733;
+  --muted: #5d6b78;
+  --border: #d5dee5;
+  --accent: #2f4b63;
 }
 
 .dark {
-  --bg: #1a1714;
-  --surface: #24201c;
-  --text: #f1ebe1;
-  --muted: #a89e92;
-  --border: #3a332c;
-  --accent: #f08a68;
+  --bg: #11161c;
+  --surface: #1a222b;
+  --text: #eef1f3;
+  --muted: #9aa6b0;
+  --border: #2a343e;
+  --accent: #8fb3cc;
 }
 
 @theme inline {
@@ -32,8 +32,8 @@
   --color-muted: var(--muted);
   --color-border: var(--border);
   --color-accent: var(--accent);
-  --font-sans: system-ui, sans-serif;
-  --font-display: Georgia, 'Times New Roman', serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-display: 'Newsreader', Georgia, serif;
 }
 
 body {
