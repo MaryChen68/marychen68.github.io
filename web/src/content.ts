@@ -28,7 +28,8 @@ export const profile = {
     { label: 'Now', value: 'Building a voice agent for reflection' },
     {
       label: 'Education',
-      value: 'Computer Science major, Statistics minor, Calvin University',
+      value:
+        'Computer Science major, Statistics minor, Cybersecurity certificate (in progress), Calvin University',
     },
     {
       label: 'Looking for',
