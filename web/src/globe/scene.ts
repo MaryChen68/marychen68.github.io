@@ -5,11 +5,11 @@ import { createTraveler } from './character'
 import { isLand } from './landmask'
 
 const R = 5 // globe radius
-const TRAVELER_SCALE = 0.78
+const TRAVELER_SCALE = 0.9
 const WALK_SPEED = 0.35 // radians per second along the surface
 const ARRIVE_ANGLE = 0.07 // how close counts as "arrived", in radians
 // Keep the traveler this far above the center of the view (radians), so we see them standing
-const VIEW_LIFT = 0.85
+const VIEW_LIFT = 1.1
 const MAX_TILT = 1.1
 
 const INK = '#1c2733'
@@ -182,7 +182,7 @@ export function createGlobe(container: HTMLElement, options: Options) {
 
   const scene = new T.Scene()
   const camera = new T.PerspectiveCamera(35, innerWidth / innerHeight, 0.1, 200)
-  let distance = innerWidth < 700 ? 30 : 20
+  let distance = innerWidth < 700 ? 32 : 24
 
   scene.add(new T.HemisphereLight('#ffffff', '#cfdbe3', 2.6))
   const key = new T.DirectionalLight('#ffffff', 1.2)
@@ -496,8 +496,9 @@ export function createGlobe(container: HTMLElement, options: Options) {
     tiltQ.setFromAxisAngle(RIGHT, view.tilt)
     planet.quaternion.copy(tiltQ).multiply(yawQ)
 
-    camera.position.set(0, 0, distance)
-    camera.lookAt(0, 0, 0)
+    // Aim a little above the center, leaving room for the traveler on top
+    camera.position.set(0, 1.2, distance)
+    camera.lookAt(0, 1.2, 0)
 
     // Shift the view so the globe isn't hidden behind the intro or the panel
     const narrow = innerWidth < 700

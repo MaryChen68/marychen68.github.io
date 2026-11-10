@@ -1,5 +1,5 @@
-// The traveler: a young woman with long curly hair and brown glasses, in a robe
-// and cape with a glowing hem, a soft halo, and motes of light around her.
+// The traveler: a Memoji-style young woman with long curly hair and round
+// glasses, in a robe and cape with a glowing hem, a soft halo, and motes of light.
 // Feet sit at y = 0 and the figure faces +Z.
 import * as T from 'three'
 
@@ -7,12 +7,15 @@ const colors = {
   cape: '#2f4b63',
   robe: '#b9c8d4',
   legs: '#26303a',
-  hair: '#2b211d',
-  skin: '#f2d4bf',
-  skinShade: '#e3b9a0',
-  lips: '#c27c6c',
-  crease: '#a77c68',
-  glasses: '#7a4b2a',
+  hair: '#1d1714',
+  skin: '#efc9ad',
+  skinShade: '#e2b293',
+  lipUpper: '#c97f6f',
+  lipLower: '#d48a7a',
+  liner: '#2a1d18',
+  crease: '#c99a80',
+  iris: '#4a3b33',
+  glasses: '#b07a3c',
   glow: '#ffe2a3',
 }
 
@@ -154,115 +157,202 @@ export function createTraveler(): Traveler {
     return arm
   })
 
-  // Head
+  // Head: big and round, Memoji-style
   const head = new T.Group()
-  head.position.y = 1.62
+  head.position.y = 1.72
   body.add(head)
-  part(head, sphere, material(colors.skin), [0, 0, 0], [0.25, 0.27, 0.25])
-
-  // Hair: a cap on top, side-swept bangs, and long curls down the back
-  const hair = material(colors.hair)
-  part(head, sphere, hair, [0, 0.07, -0.06], [0.27, 0.26, 0.26])
-  part(head, sphere, hair, [-0.08, 0.16, 0.17], [0.16, 0.07, 0.08]).rotation.z =
-    0.35
-  part(head, sphere, hair, [0.1, 0.18, 0.15], [0.12, 0.06, 0.08]).rotation.z =
-    -0.2
-  for (let i = 0; i < 11; i++) {
-    // Strands spread around the back and sides, leaving the face clear
-    const a = Math.PI * (0.32 + (i / 10) * 1.36)
-    const out = new T.Vector3(Math.sin(a), 0, Math.cos(a))
-    const side = new T.Vector3(Math.cos(a), 0, -Math.sin(a))
-    for (let k = 0; k < 6; k++) {
-      const wave = Math.sin(k * 1.9 + i * 1.3) * 0.035
-      const r = 0.23 + k * 0.012
-      const p = out.clone().multiplyScalar(r).addScaledVector(side, wave)
-      part(
-        head,
-        sphere,
-        hair,
-        [p.x, -0.04 - k * 0.11, p.z - 0.02],
-        [0.075 - k * 0.004, 0.08, 0.075 - k * 0.004],
-      )
-    }
-  }
-
-  // Face: eyes with a double-eyelid crease, brows, nose, and a small smile
+  const skin = material(colors.skin)
+  part(head, sphere, skin, [0, 0, 0], [0.33, 0.38, 0.32])
+  part(head, sphere, skin, [0, -0.12, 0.02], [0.27, 0.22, 0.26])
   for (const side of [-1, 1]) {
-    const x = side * 0.085
+    part(head, sphere, skin, [side * 0.325, -0.02, 0], [0.05, 0.07, 0.04])
     part(
       head,
       sphere,
-      material(colors.hair),
-      [x, -0.01, 0.222],
-      [0.032, 0.026, 0.02],
+      material('#ffffff'),
+      [side * 0.335, -0.1, 0.02],
+      [0.022, 0.022, 0.022],
+    )
+  }
+
+  // Eyes: white, iris, pupil, highlight, eyeliner, and a double-eyelid crease
+  for (const side of [-1, 1]) {
+    const x = side * 0.12
+    part(head, sphere, material('#ffffff'), [x, 0, 0.285], [0.075, 0.058, 0.03])
+    part(
+      head,
+      sphere,
+      material(colors.iris),
+      [x, -0.003, 0.311],
+      [0.045, 0.045, 0.012],
+    )
+    part(
+      head,
+      sphere,
+      material('#111111'),
+      [x, -0.003, 0.321],
+      [0.022, 0.022, 0.006],
     )
     part(
       head,
       sphere,
       material('#ffffff'),
-      [x + 0.01, 0.0, 0.24],
-      [0.008, 0.008, 0.004],
+      [x + 0.015, 0.016, 0.326],
+      [0.011, 0.011, 0.004],
     )
-    curve(head, colors.crease, [
-      [x - 0.034, 0.016, 0.228],
-      [x, 0.032, 0.238],
-      [x + 0.034, 0.016, 0.228],
-    ])
-    part(
+    curve(
       head,
-      new T.BoxGeometry(1, 1, 1),
-      hair,
-      [x, 0.075, 0.232],
-      [0.06, 0.012, 0.01],
-    ).rotation.z = side * -0.08
+      colors.liner,
+      [
+        [x - 0.078, 0.008, 0.298],
+        [x, 0.06, 0.32],
+        [x + 0.078, 0.012, 0.298],
+      ],
+      0.007,
+    )
+    curve(
+      head,
+      colors.crease,
+      [
+        [x - 0.066, 0.045, 0.302],
+        [x, 0.088, 0.314],
+        [x + 0.066, 0.048, 0.302],
+      ],
+      0.0035,
+    )
+    // Brows rise from the inner end and taper outward
+    curve(
+      head,
+      colors.liner,
+      [
+        [side * 0.05, 0.15, 0.31],
+        [x, 0.172, 0.31],
+        [side * 0.19, 0.152, 0.285],
+      ],
+      0.011,
+    )
   }
   part(
     head,
     sphere,
-    material(colors.skinShade),
-    [0, -0.06, 0.245],
-    [0.018, 0.02, 0.015],
-  )
-  curve(
-    head,
-    colors.lips,
-    [
-      [-0.03, -0.112, 0.228],
-      [0, -0.124, 0.236],
-      [0.03, -0.112, 0.228],
-    ],
-    0.005,
+    material(colors.liner),
+    [-0.105, -0.085, 0.305],
+    [0.008, 0.008, 0.004],
   )
 
-  // Brown round glasses
-  const frame = colors.glasses
+  // Nose and lips
+  part(
+    head,
+    sphere,
+    material(colors.skinShade),
+    [0, -0.09, 0.322],
+    [0.035, 0.03, 0.035],
+  )
+  part(
+    head,
+    sphere,
+    material(colors.lipUpper),
+    [0, -0.178, 0.3],
+    [0.06, 0.018, 0.025],
+  )
+  part(
+    head,
+    sphere,
+    material(colors.lipLower),
+    [0, -0.2, 0.296],
+    [0.055, 0.022, 0.025],
+  )
+
+  // Thin round gold-brown glasses
+  const frame = new T.MeshStandardMaterial({
+    color: colors.glasses,
+    roughness: 0.4,
+    metalness: 0.3,
+  })
   for (const side of [-1, 1]) {
-    part(head, new T.TorusGeometry(0.058, 0.008, 8, 28), material(frame), [
-      side * 0.085,
-      -0.005,
-      0.262,
+    part(head, new T.TorusGeometry(0.088, 0.006, 8, 36), frame, [
+      side * 0.12,
+      0,
+      0.335,
     ])
     curve(
       head,
-      frame,
+      colors.glasses,
       [
-        [side * 0.143, 0, 0.255],
-        [side * 0.22, 0.01, 0.15],
-        [side * 0.25, 0.02, 0.02],
+        [side * 0.208, 0, 0.31],
+        [side * 0.3, 0.02, 0.12],
+        [side * 0.33, 0, -0.02],
       ],
-      0.006,
+      0.005,
     )
   }
   curve(
     head,
-    frame,
+    colors.glasses,
     [
-      [-0.027, 0.005, 0.265],
-      [0, 0.015, 0.27],
-      [0.027, 0.005, 0.265],
+      [-0.032, 0.01, 0.338],
+      [0, 0.03, 0.342],
+      [0.032, 0.01, 0.338],
     ],
-    0.006,
+    0.005,
   )
+
+  // Hair: a smooth center-parted crown, side curtains, long volume, and fine spiral curls
+  const hair = new T.MeshStandardMaterial({
+    color: colors.hair,
+    roughness: 0.45,
+  })
+  const hairLight = new T.MeshStandardMaterial({
+    color: '#2e2420',
+    roughness: 0.45,
+  })
+  part(head, sphere, hair, [0, 0.07, -0.07], [0.36, 0.41, 0.35])
+  curve(
+    head,
+    colors.skin,
+    [
+      [0, 0.25, 0.24],
+      [0, 0.42, 0.11],
+      [0, 0.47, -0.06],
+    ],
+    0.008,
+  )
+  for (const side of [-1, 1]) {
+    part(
+      head,
+      sphere,
+      hair,
+      [side * 0.28, -0.04, 0.15],
+      [0.1, 0.32, 0.12],
+    ).rotation.z = side * 0.18
+    part(head, sphere, hair, [side * 0.31, -0.32, 0.02], [0.11, 0.38, 0.15])
+  }
+  part(head, sphere, hair, [0, -0.36, -0.17], [0.38, 0.55, 0.28])
+  for (let i = 0; i < 20; i++) {
+    // Curls spread around the sides and back, leaving the face clear
+    const a = Math.PI * (0.32 + (i / 19) * 1.36)
+    const out = new T.Vector3(Math.sin(a), 0, Math.cos(a))
+    const across = new T.Vector3(Math.cos(a), 0, -Math.sin(a))
+    const length = 0.62 + ((i * 7) % 5) * 0.05
+    const points: T.Vector3[] = []
+    for (let k = 0; k <= 48; k++) {
+      const t = k / 48
+      const turn = t * 4.5 * Math.PI * 2 + i * 1.7
+      const p = out
+        .clone()
+        .multiplyScalar(0.3 + t * 0.09 + Math.sin(turn) * 0.035)
+      p.addScaledVector(across, Math.cos(turn) * 0.035)
+      p.y = -0.18 - t * length
+      points.push(p)
+    }
+    const tube = new T.TubeGeometry(
+      new T.CatmullRomCurve3(points),
+      96,
+      0.027,
+      6,
+    )
+    part(head, tube, i % 3 === 0 ? hairLight : hair, [0, 0, -0.04])
+  }
 
   // Halo behind the figure, and a warm light that falls on the ground
   const texture = glowTexture()
@@ -274,12 +364,12 @@ export function createTraveler(): Traveler {
       depthWrite: false,
     }),
   )
-  halo.position.y = 1.1
-  halo.scale.setScalar(2.6)
+  halo.position.y = 1.3
+  halo.scale.setScalar(3)
   halo.renderOrder = -1
   root.add(halo)
   const light = new T.PointLight(colors.glow, 4, 3.5, 1.5)
-  light.position.y = 0.9
+  light.position.y = 0.15
   root.add(light)
 
   // Motes of light that rise around the figure and fade out
