@@ -14,7 +14,7 @@ const MAX_TILT = 1.1
 
 const INK = '#2e332f'
 const LAND = '#9aa392'
-const OCEAN = '#e3e6e2'
+const OCEAN = '#e2edf3'
 const ACCENT = '#b4532a'
 const UP = new T.Vector3(0, 1, 0)
 const RIGHT = new T.Vector3(1, 0, 0)
